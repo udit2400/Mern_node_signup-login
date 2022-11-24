@@ -50,6 +50,64 @@ exports.signup = async(req, res) => {
 };
 
 
-// exports.login = async(req, res) => ({
 
-// })
+
+
+
+///********************LOGIN**************************************************** */
+
+
+
+exports.login = async(req, res) => {
+    try {
+        const userData = req.body;
+        //const { name, email, password } = req.body;
+        const userExists = await userModel.findOne({ email: userData.email });
+        // const verifyEmail  = userExists(true);
+        if (!userExists) {
+            res.send({
+                tatusCode: 200,
+                message: "User does't exists",
+                error: false,
+                data: null
+
+            });
+
+        } else {
+            const hash = crypto.createHash("sha1");
+            hash.update(userData.password + process.env.SALT);
+            const hashpassword = hash.digest("hex");
+
+            const userMatch = await userModel.findOne({
+                email: userData.email,
+                password: hashpassword,
+            });
+            if (userMatch) {
+                const token = jwt.sign({ userId: userMatch._id },
+                    process.env.SECRET_KEY
+                );
+                res.send({
+                    statuscode: 200,
+                    message: "login sucessfull",
+                    data: userMatch,
+                    token: token,
+                });
+            } else {
+                res.send({
+                    statusCode: 401,
+                    message: "unauthorised user",
+                    error: true,
+                    data: null,
+                });
+            }
+        }
+    } catch (error) {
+        console.log(error);
+        res.send({
+            statusCode: 400,
+            message: error.message,
+            error: true,
+            data: null,
+        });
+    }
+};
